@@ -1,0 +1,59 @@
+version: "3.8"
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: fl_server
+    ports:
+      - "8080:8080"
+      - "5001:5001"
+    volumes:
+      - ./models:/app/models
+      - ./federated_clients:/app/federated_clients
+    environment:
+      - FL_ROUNDS=3
+      - IN_DIM=561
+      - NUM_CLASSES=6
+
+  client1:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    depends_on:
+      - server
+    volumes:
+      - ./federated_clients:/app/federated_clients
+      - ./models:/app/models
+    command: ["python","client/client.py","--client_id","client_1","--data","federated_clients/client_1.csv","--fl_server","fl_server:8080"]
+
+  client2:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    depends_on:
+      - server
+    volumes:
+      - ./federated_clients:/app/federated_clients
+      - ./models:/app/models
+    command: ["python","client/client.py","--client_id","client_2","--data","federated_clients/client_2.csv","--fl_server","fl_server:8080"]
+
+  client3:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    depends_on:
+      - server
+    volumes:
+      - ./federated_clients:/app/federated_clients
+      - ./models:/app/models
+    command: ["python","client/client.py","--client_id","client_3","--data","federated_clients/client_3.csv","--fl_server","fl_server:8080"]
+
+  serving:
+    build:
+      context: .
+      dockerfile: serving/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models

@@ -1,0 +1,13 @@
+flwr==1.6.0
+torch>=1.13
+pandas
+scikit-learn
+numpy
+flask
+requests
+mlflow
+psutil
+prometheus-client
+evidently
+uvicorn
+fastapi
