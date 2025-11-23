@@ -13,36 +13,26 @@
 # # Corrected COPY path
 # COPY dags /opt/airflow/dags
 
-# Use the official Apache Airflow image
+# Base Airflow image
 FROM apache/airflow:2.8.1
 
-# Switch to root to install OS packages if needed
-USER root
+# Set working directory
+WORKDIR /opt/airflow
 
-# Install OS-level dependencies if required (optional)
-# RUN apt-get update && apt-get install -y \
-#     git \
-#     curl \
-#     && apt-get clean \
-#     && rm -rf /var/lib/apt/lists/*
-
-# Switch back to the airflow user
-USER airflow
-
-# Install Python packages needed for your DAGs
+# Install Python packages
 RUN pip install --no-cache-dir \
     mlflow==3.6.0 \
     requests==2.32.5
 
-# Set workdir for airflow dags/plugins (optional)
-WORKDIR /opt/airflow
-
-# Copy your DAGs into the image
-# Adjust path as per your project structure
+# Copy DAGs
 COPY dags/ /opt/airflow/dags/
-COPY plugins/ /opt/airflow/plugins/
+
+# Copy plugins if the folder exists
+# This avoids errors if plugins/ does not exist
+COPY plugins/ /opt/airflow/plugins/ 2>/dev/null || echo "No plugins folder found, skipping..."
 
 # Expose webserver port
 EXPOSE 8080
 
-# Entrypoint and CMD are already handled by airflow image
+# Set default command
+CMD ["webserver"]
