@@ -6,13 +6,43 @@
 # CMD ["python", "client/client.py", "--client_id", "client_1", "--data", "federated_clients/client_1.csv", "--fl_server", "server:8080"]
 
 
-FROM python:3.11
+# FROM python:3.11
+# WORKDIR /app
+
+# COPY requirements.txt requirements.txt
+# RUN pip install --no-cache-dir -r requirements.txt
+
+# COPY client /app/client
+# COPY shared /app/shared
+
+# CMD ["python", "client/client.py", "--client_id", "${CLIENT_ID}", "--data", "${DATA_PATH}"]
+FROM python:3.11-slim
+
+# Prevent Python from writing .pyc files & enable unbuffered logs
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
+# Install system-level dependencies ONLY if needed
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies first (better caching)
+COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY client /app/client
-COPY shared /app/shared
+# Copy application code
+COPY client/ /app/client
+COPY shared/ /app/shared
 
-CMD ["python", "client/client.py", "--client_id", "${CLIENT_ID}", "--data", "${DATA_PATH}"]
+# Environment variables used at runtime
+ENV CLIENT_ID=""
+ENV DATA_PATH=""
+
+# ENTRYPOINT ensures args & env vars are passed correctly
+ENTRYPOINT ["python", "client/client.py"]
+
+# CMD supplies default arguments that can be overridden
+CMD ["--client_id", "${CLIENT_ID}", "--data", "${DATA_PATH}"]
