@@ -263,8 +263,8 @@ services:
   serving:
     build:
       context: .
+      dockerfile: serving/Dockerfile
     container_name: fl-serving
-    dockerfile: serving/Dockerfile
     ports:
       - "8000:8000"
     networks:
@@ -281,6 +281,7 @@ services:
   airflow:
     build:
       context: ./airflow
+      dockerfile: Dockerfile
     container_name: airflow
     ports:
       - "8080:8080"
@@ -313,3 +314,4 @@ networks:
 
 volumes:
   models:
+
