@@ -388,23 +388,23 @@ services:
       - PYTHONPATH=/app
     command: ["--client_id", "client3", "--data", "/app/client_3.csv"]
 
-serving:
-  build:
-    context: .
-    dockerfile: serving/Dockerfile
-  container_name: fl-serving
-  ports:
-    - "8000:8000"
-  networks:
-    - fl-net
-  volumes:
-    - models:/app/models
-    - ./shared:/app/shared
-  environment:
-    - PYTHONPATH=/app
-  depends_on:
-    - server
-
+  serving:
+    build:
+      context: .
+      dockerfile: serving/Dockerfile
+    container_name: fl-serving
+    ports:
+      - "8000:8000"
+    networks:
+      - fl-net
+    volumes:
+      - models:/app/models
+      - ./shared:/app/shared
+      - ./serving:/app/serving
+    environment:
+      - PYTHONPATH=/app
+    depends_on:
+      - server
 
 networks:
   fl-net:
