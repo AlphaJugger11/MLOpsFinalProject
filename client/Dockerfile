@@ -1,18 +1,22 @@
-# FROM python:3.10-slim
-# WORKDIR /app
-# COPY requirements.txt .
-# RUN pip install --no-cache-dir -r requirements.txt
-# COPY . /app
-# CMD ["python", "client/client.py", "--client_id", "client_1", "--data", "federated_clients/client_1.csv", "--fl_server", "server:8080"]
+FROM python:3.11-slim
 
-
-FROM python:3.11
 WORKDIR /app
 
-COPY client/requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+# Set environment variables with defaults
+ENV CLIENT_ID=1 \
+    S3_BUCKET=mlopsprojbucket \
+    USE_S3=true \
+    AWS_REGION=us-east-1 \
+    FL_SERVER=server:8080 \
+    DATA_PATH=/app/federated_clients/client_1.csv
 
+# Copy and install dependencies (including boto3)
+COPY client/requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
 COPY client /app/client
 COPY shared /app/shared
 
-CMD ["python", "client/client.py", "--client_id", "${CLIENT_ID}", "--data", "${DATA_PATH}"]
+# Set entry point with dynamic arguments
+ENTRYPOINT ["sh", "-c", "python client/client.py --client_id ${CLIENT_ID} --data ${DATA_PATH} --fl_server ${FL_SERVER}"]

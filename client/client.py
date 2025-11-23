@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import requests
 from client.data_prep import load_client_csv
+from client.s3_data_loader import download_client_data_from_s3, validate_data_integrity, S3DownloadError
 from shared.model_utils import get_parameters_numpy, set_parameters_from_numpy, load_model_torch
 from shared.model import get_model
 from prometheus_client import Gauge, start_http_server
@@ -91,6 +92,31 @@ def get_fl_server_address(control_api='http://127.0.0.1:5001', fl_server=None):
 
 def start_client(fl_server, client_id, data_path):
     start_http_server(9100)  # expose Prometheus metrics
+    
+    # Check if we should download from S3
+    s3_bucket = os.getenv("S3_BUCKET")
+    use_s3 = os.getenv("USE_S3", "false").lower() == "true"
+    
+    if use_s3 and s3_bucket:
+        try:
+            print(f"[client:{client_id}] Downloading data from S3 bucket: {s3_bucket}")
+            # Download data from S3
+            local_data_path = f"/tmp/client_{client_id}_data.csv"
+            download_client_data_from_s3(
+                bucket_name=s3_bucket,
+                client_id=client_id,
+                local_path=local_data_path
+            )
+            # Validate data integrity
+            validate_data_integrity(local_data_path)
+            data_path = local_data_path
+            print(f"[client:{client_id}] Using S3 data from {data_path}")
+        except S3DownloadError as e:
+            print(f"[client:{client_id}] S3 download failed: {e}")
+            print(f"[client:{client_id}] Falling back to local data path: {data_path}")
+    else:
+        print(f"[client:{client_id}] Using local data path: {data_path}")
+    
     train_loader, val_loader, in_dim, num_classes, _ = load_client_csv(data_path)
     model = get_model(in_dim=in_dim, num_classes=num_classes)
 

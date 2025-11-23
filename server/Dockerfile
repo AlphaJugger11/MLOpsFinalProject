@@ -1,20 +1,28 @@
-# FROM python:3.10-slim
-# WORKDIR /app
-# COPY server/requirements.txt .
-# RUN pip install --no-cache-dir -r server/requirements.txt
-# COPY . /app
-# EXPOSE 8080 5001
-# CMD ["python", "server/server.py"]
+FROM python:3.11-slim
 
-
-FROM python:3.11
 WORKDIR /app
 
-COPY server/requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+# Set environment variables with defaults
+ENV FL_ROUNDS=3 \
+    IN_DIM=561 \
+    NUM_CLASSES=6 \
+    FL_PORT=8080 \
+    MLFLOW_TRACKING_URI="" \
+    MLFLOW_EXPERIMENT="FL_Experiment"
 
+# Copy and install dependencies
+COPY server/requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy only necessary files
 COPY server /app/server
 COPY shared /app/shared
-COPY models /app/models
 
+# Create models directory
+RUN mkdir -p /app/models
+
+# Expose ports
+EXPOSE 8080 5001
+
+# Set entry point
 CMD ["python", "server/server.py"]
