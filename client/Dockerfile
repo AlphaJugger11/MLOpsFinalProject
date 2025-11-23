@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY client/ /app/client
 COPY shared/ /app/shared
-
+COPY models/ /app/models
 # Ensure 'client' is treated as a package
 RUN touch /app/client/__init__.py
 

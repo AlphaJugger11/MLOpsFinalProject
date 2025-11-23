@@ -19,4 +19,5 @@ COPY models/ /app/models
 
 ENV PYTHONPATH=/app
 
-ENTRYPOINT ["python", "-m", "serving.serving"]
+# Use app.py instead of serving.serving
+ENTRYPOINT ["python", "-m", "serving.app"]

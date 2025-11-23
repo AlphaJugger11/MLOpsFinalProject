@@ -21,7 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY server/ /app/server
 COPY shared/ /app/shared
-
+COPY models/ /app/models
 # Ensure 'server' is treated as a package
 RUN touch /app/server/__init__.py
 

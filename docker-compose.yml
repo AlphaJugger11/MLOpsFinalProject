@@ -315,13 +315,10 @@
 # volumes:
 #   models:
 
+
 version: "3.9"
 
 services:
-
-  #############################################
-  # SERVER (Federated Learning Aggregator)
-  #############################################
   server:
     build:
       context: .
@@ -334,14 +331,9 @@ services:
     volumes:
       - models:/app/models
       - ./shared:/app/shared
-      - ./server:/app/server       # Ensure server code is visible
     environment:
-      PYTHONPATH: /app
-    command: ["python", "-m", "server.server"]
+      - PYTHONPATH=/app
 
-  #############################################
-  # CLIENT 1
-  #############################################
   client1:
     build:
       context: .
@@ -355,18 +347,11 @@ services:
       - ./federated_clients/client_1.csv:/app/client_1.csv
       - models:/app/models
       - ./shared:/app/shared
-      - ./client:/app/client       # Ensure client code is visible
     environment:
-      CLIENT_ID: "client_1"
-      DATA_PATH: "/app/client_1.csv"
-      SERVER_ADDR: "server:8070"
-      PYTHONPATH: /app
-    entrypoint: ["python", "client/client.py"]
-    command: ["--client_id", "${CLIENT_ID}", "--data", "${DATA_PATH}"]
+      - SERVER_ADDR=server:8070
+      - PYTHONPATH=/app
+    command: ["--client_id", "client1", "--data", "/app/client_1.csv"]
 
-  #############################################
-  # CLIENT 2
-  #############################################
   client2:
     build:
       context: .
@@ -380,18 +365,11 @@ services:
       - ./federated_clients/client_2.csv:/app/client_2.csv
       - models:/app/models
       - ./shared:/app/shared
-      - ./client:/app/client
     environment:
-      CLIENT_ID: "client_2"
-      DATA_PATH: "/app/client_2.csv"
-      SERVER_ADDR: "server:8070"
-      PYTHONPATH: /app
-    entrypoint: ["python", "client/client.py"]
-    command: ["--client_id", "${CLIENT_ID}", "--data", "${DATA_PATH}"]
+      - SERVER_ADDR=server:8070
+      - PYTHONPATH=/app
+    command: ["--client_id", "client2", "--data", "/app/client_2.csv"]
 
-  #############################################
-  # CLIENT 3
-  #############################################
   client3:
     build:
       context: .
@@ -405,18 +383,11 @@ services:
       - ./federated_clients/client_3.csv:/app/client_3.csv
       - models:/app/models
       - ./shared:/app/shared
-      - ./client:/app/client
     environment:
-      CLIENT_ID: "client_3"
-      DATA_PATH: "/app/client_3.csv"
-      SERVER_ADDR: "server:8070"
-      PYTHONPATH: /app
-    entrypoint: ["python", "client/client.py"]
-    command: ["--client_id", "${CLIENT_ID}", "--data", "${DATA_PATH}"]
+      - SERVER_ADDR=server:8070
+      - PYTHONPATH=/app
+    command: ["--client_id", "client3", "--data", "/app/client_3.csv"]
 
-  #############################################
-  # SERVING API (FastAPI Inference)
-  #############################################
   serving:
     build:
       context: .
@@ -431,10 +402,9 @@ services:
       - ./shared:/app/shared
       - ./serving:/app/serving
     environment:
-      PYTHONPATH: /app
+      - PYTHONPATH=/app
     depends_on:
       - server
-    command: ["python", "-m", "serving.serving"]
 
 networks:
   fl-net:
