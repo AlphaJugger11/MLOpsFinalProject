@@ -278,22 +278,22 @@ services:
   #############################################
   # AIRFLOW (TRAINING DAG)
   #############################################
-  airflow:
-    build:
-      context: ./airflow
-      dockerfile: Dockerfile
-    container_name: airflow
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./airflow/dags:/opt/airflow/dags
-      - models:/models
-    networks:
-      - fl-net
-    environment:
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
-    depends_on:
-      - server
+  # airflow:
+  #   build:
+  #     context: ./airflow
+  #     dockerfile: Dockerfile
+  #   container_name: airflow
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./airflow/dags:/opt/airflow/dags
+  #     - models:/models
+  #   networks:
+  #     - fl-net
+  #   environment:
+  #     - AIRFLOW__CORE__LOAD_EXAMPLES=False
+  #   depends_on:
+  #     - server
 
   #############################################
   # PROMETHEUS + MONITORING (OPTIONAL)
