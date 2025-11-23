@@ -1,23 +1,40 @@
-# FROM python:3.10-slim
+
+# serving/Dockerfile
+# FROM python:3.11-slim
+
+# ENV PYTHONDONTWRITEBYTECODE=1
+# ENV PYTHONUNBUFFERED=1
 # WORKDIR /app
+
 # COPY requirements.txt .
 # RUN pip install --no-cache-dir -r requirements.txt
-# COPY . /app
-# EXPOSE 8000
-# CMD ["uvicorn", "serving.app:app", "--host", "0.0.0.0", "--port", "8000"]
 
+# COPY shared/ /app/shared
+# COPY models/ /app/models
+# COPY serving/ /app/serving
+
+# ENV PYTHONPATH=/app
+
+# ENTRYPOINT ["python", "serving/app.py"]
+
+# serving/Dockerfile
 FROM python:3.11-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
+# Copy Python requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY serving/ /app/serving
+# Copy shared utilities and models
 COPY shared/ /app/shared
 COPY models/ /app/models
+COPY serving/ /app/serving
 
+# Ensure imports work
 ENV PYTHONPATH=/app
 
-# Use app.py instead of serving.serving
-ENTRYPOINT ["python", "-m", "serving.app"]
+# Run FastAPI app
+ENTRYPOINT ["python", "serving/app.py"]

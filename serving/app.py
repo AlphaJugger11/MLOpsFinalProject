@@ -6,11 +6,19 @@ from pathlib import Path
 from shared.model import get_model
 
 app = FastAPI()
-MODEL_PATH = Path.cwd().parent / "models" / "global_round_2.pth"
+MODELS_DIR = Path("/app/models")  # mounted volume
 model = None
 
 class PredictRequest(BaseModel):
     features: list
+
+def get_latest_model_path(models_dir: Path):
+    all_models = list(models_dir.glob("global_round_*.pth"))
+    if not all_models:
+        return None
+    # Sort by round number extracted from filename
+    all_models.sort(key=lambda p: int(p.stem.split("_")[-1]), reverse=True)
+    return all_models[0]
 
 @app.on_event('startup')
 def load_model():
@@ -18,15 +26,18 @@ def load_model():
     in_dim = int(__import__('os').environ.get('IN_DIM', '561'))
     num_classes = int(__import__('os').environ.get('NUM_CLASSES', '6'))
     model = get_model(in_dim=in_dim, num_classes=num_classes)
+
+    model_path = get_latest_model_path(MODELS_DIR)
+    if model_path is None:
+        print("[serving] WARNING: No FL model found in", MODELS_DIR)
+        return
+
     try:
-        if MODEL_PATH.exists():
-            model.load_state_dict(torch.load(str(MODEL_PATH), map_location='cpu'))
-            model.eval()
-            print('[serving] loaded model', MODEL_PATH)
-        else:
-            print('[serving] no model found at', MODEL_PATH)
+        model.load_state_dict(torch.load(str(model_path), map_location='cpu'))
+        model.eval()
+        print(f"[serving] Loaded latest model: {model_path}")
     except Exception as e:
-        print('[serving] error loading model:', e)
+        print("[serving] Error loading model:", e)
 
 @app.post('/predict')
 def predict(req: PredictRequest):
