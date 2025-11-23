@@ -101,16 +101,15 @@ jobs:
     - name: Wait for Serving API to be ready
       run: sleep 10  # adjust if your FastAPI takes longer
 
-    - name: Test Inference
+    - name: Test Inference inside container
       run: |
-        # Example: Python inference script
-        python - <<EOF
+        docker exec fl-serving python - <<EOF
         import torch
         from shared.model import get_model
 
-        # Load the latest global model
-        import glob, os
-        model_files = sorted(glob.glob("models/global_round_*.pth"))
+        # Load the latest global model from /app/models inside container
+        import glob
+        model_files = sorted(glob.glob("/app/models/global_round_*.pth"))
         assert model_files, "No global model found"
         latest_model_path = model_files[-1]
 
@@ -118,12 +117,11 @@ jobs:
         model.load_state_dict(torch.load(latest_model_path))
         model.eval()
 
-        # Fake input for testing
-        import torch
-        dummy_input = torch.randn(1, 561)  # adjust input size
+        dummy_input = torch.randn(1, 561)
         output = model(dummy_input)
         print("✅ Inference output:", output)
         EOF
+
 
     - name: Docker Cleanup
       if: always()
