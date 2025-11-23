@@ -21,3 +21,19 @@ def set_parameters_from_numpy(model, parameters):
     for (k, _), arr in zip(state_dict.items(), parameters):
         new_state[k] = torch.tensor(arr)
     model.load_state_dict(new_state)
+
+def set_state_dict_from_numpy_by_keys(model, weights_dict):
+    """
+    Update a PyTorch model's state_dict using only specific keys 
+    provided as numpy arrays.
+    """
+    state_dict = model.state_dict()
+
+    for key, value in weights_dict.items():
+        if key in state_dict:
+            state_dict[key] = torch.tensor(value)
+        else:
+            print(f"Warning: key '{key}' not found in model state dict")
+
+    model.load_state_dict(state_dict)
+    return model
