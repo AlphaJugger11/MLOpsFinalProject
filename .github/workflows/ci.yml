@@ -1,15 +1,15 @@
-# name: CI Pipeline
+
+# name: MLOps FL Training & Build Test
 
 # on:
 #   push:
-#     branches: 
-#         - final_flow
-
+#     branches:
+#       - final_flow
 
 # jobs:
-#   build-and-validate:
+#   federated-training:
 #     runs-on: ubuntu-latest
-
+    
 #     steps:
 #     - name: Checkout repository
 #       uses: actions/checkout@v3
@@ -19,55 +19,35 @@
 #       with:
 #         python-version: '3.11'
 
-#     # - name: Install Python dependencies
-#     #   run: |
-#     #     pip install -r requirements.txt
-
-#     # - name: Lint (basic sanity check)
-#     #   run: |
-#     #     pip install flake8
-#     #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
-#     #     flake8 . --exit-zero --max-complexity=12 --max-line-length=150
-
-#     # - name: Validate Python imports (syntax check)
-#     #   run: |
-#     #     python -m py_compile $(git ls-files '*.py')
-
-#     # # ------------- DOCKER SECTION -------------
-#     # - name: Set up Docker Buildx
-#     #   uses: docker/setup-buildx-action@v2
-
-#     # - name: Login to GitHub Container Registry
-#     #   uses: docker/login-action@v3
-#     #   with:
-#     #     registry: ghcr.io
-#     #     username: ${{ github.actor }}
-#     #     password: ${{ secrets.GITHUB_TOKEN }}
-
-#     - name: Build Docker images
+#     - name: Run Full FL Pipeline
 #       run: |
-#         docker build -t server-image ./server
-#         docker build -t client-image ./client
-#         docker build -t serving-image ./serving
-#         docker build -t airflow-image ./airflow
-#         echo "All Docker images built successfully."
+#         docker compose up --abort-on-container-exit --remove-orphans
+#       timeout-minutes: 15
 
-#     - name: Validate docker-compose syntax
+#     - name: Export model volume to host
+#       if: always()
 #       run: |
-#         docker compose config
+#         mkdir -p models
+#         docker run --rm -v mlopsfinalproject_models:/models -v $PWD/models:/output \
+#           busybox cp /models/* /output/ || true
 
-#     - name: Spin up docker-compose for HEALTH CHECK ONLY
+#     - name: Show server logs
+#       if: always()
+#       run: docker logs fl-server || true
+
+#     - name: Check that model was produced
 #       run: |
-#         docker compose up -d
-#         sleep 15
-#         docker compose ps
-#         docker compose down
+#         if ls models/global_round_*.pth 1> /dev/null 2>&1; then
+#             echo "✅ Global FL Model Found — TRAINING SUCCESSFUL"
+#         else
+#             echo "❌ GLOBAL MODEL NOT PRODUCED — TRAINING FAILED"
+#             exit 1
+#         fi
 
-#     # Optional – push images (enable if needed)
-#     # - name: Push images to GHCR
-#     #   run: |
-#     #     docker tag server-image ghcr.io/${{ github.repository }}/server:latest
-#     #     docker push ghcr.io/${{ github.repository }}/server:latest
+#     - name: Docker Cleanup
+#       if: always()
+#       run: docker compose down --volumes --remove-orphans
+
 
 name: MLOps FL Training & Build Test
 
@@ -113,6 +93,37 @@ jobs:
             echo "❌ GLOBAL MODEL NOT PRODUCED — TRAINING FAILED"
             exit 1
         fi
+
+    # --- NEW: Run inference ---
+    - name: Start Serving Container
+      run: docker compose up -d serving
+
+    - name: Wait for Serving API to be ready
+      run: sleep 10  # adjust if your FastAPI takes longer
+
+    - name: Test Inference
+      run: |
+        # Example: Python inference script
+        python - <<EOF
+        import torch
+        from shared.model import get_model
+
+        # Load the latest global model
+        import glob, os
+        model_files = sorted(glob.glob("models/global_round_*.pth"))
+        assert model_files, "No global model found"
+        latest_model_path = model_files[-1]
+
+        model = get_model()
+        model.load_state_dict(torch.load(latest_model_path))
+        model.eval()
+
+        # Fake input for testing
+        import torch
+        dummy_input = torch.randn(1, 561)  # adjust input size
+        output = model(dummy_input)
+        print("✅ Inference output:", output)
+        EOF
 
     - name: Docker Cleanup
       if: always()
