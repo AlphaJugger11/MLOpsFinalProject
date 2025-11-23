@@ -6,7 +6,7 @@ from pathlib import Path
 from shared.model import get_model
 
 app = FastAPI()
-MODEL_PATH = Path.cwd().parent / "models" / "global_round_0.pth"
+MODEL_PATH = Path.cwd().parent / "models" / "global_round_2.pth"
 model = None
 
 class PredictRequest(BaseModel):

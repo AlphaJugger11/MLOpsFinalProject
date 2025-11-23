@@ -16,44 +16,165 @@ services:
       - IN_DIM=561
       - NUM_CLASSES=6
 
+  # client1:
+  #   build:
+  #     context: .
+  #     dockerfile: client/Dockerfile
+  #   depends_on:
+  #     - server
+  #   volumes:
+  #     - ./federated_clients:/app/federated_clients
+  #     - ./models:/app/models
+  #   command: ["python","client/client.py","--client_id","client_1","--data","federated_clients/client_1.csv","--fl_server","fl_server:8080"]
+
+  # client2:
+  #   build:
+  #     context: .
+  #     dockerfile: client/Dockerfile
+  #   depends_on:
+  #     - server
+  #   volumes:
+  #     - ./federated_clients:/app/federated_clients
+  #     - ./models:/app/models
+  #   command: ["python","client/client.py","--client_id","client_2","--data","federated_clients/client_2.csv","--fl_server","fl_server:8080"]
+
+  # client3:
+  #   build:
+  #     context: .
+  #     dockerfile: client/Dockerfile
+  #   depends_on:
+  #     - server
+  #   volumes:
+  #     - ./federated_clients:/app/federated_clients
+  #     - ./models:/app/models
+  #   command: ["python","client/client.py","--client_id","client_3","--data","federated_clients/client_3.csv","--fl_server","fl_server:8080"]
+
+  # ----------------------------------------------------------
+  # 2) CLIENTS (STATIC 3 clients)
+  # ----------------------------------------------------------
   client1:
-    build:
-      context: .
-      dockerfile: client/Dockerfile
+    build: ./client
+    container_name: client_1
+    environment:
+      - CLIENT_ID=1
+      - DATA_PATH=/data/client_1.csv
+    volumes:
+      - models:/app/models
+      - ./shared:/app/shared
+      - ./federated_clients:/data
     depends_on:
       - server
-    volumes:
-      - ./federated_clients:/app/federated_clients
-      - ./models:/app/models
-    command: ["python","client/client.py","--client_id","client_1","--data","federated_clients/client_1.csv","--fl_server","fl_server:8080"]
 
   client2:
-    build:
-      context: .
-      dockerfile: client/Dockerfile
+    build: ./client
+    container_name: client_2
+    environment:
+      - CLIENT_ID=2
+      - DATA_PATH=/data/client_2.csv
+    volumes:
+      - models:/app/models
+      - ./shared:/app/shared
+      - ./federated_clients:/data
     depends_on:
       - server
-    volumes:
-      - ./federated_clients:/app/federated_clients
-      - ./models:/app/models
-    command: ["python","client/client.py","--client_id","client_2","--data","federated_clients/client_2.csv","--fl_server","fl_server:8080"]
 
   client3:
-    build:
-      context: .
-      dockerfile: client/Dockerfile
+    build: ./client
+    container_name: client_3
+    environment:
+      - CLIENT_ID=3
+      - DATA_PATH=/data/client_3.csv
+    volumes:
+      - models:/app/models
+      - ./shared:/app/shared
+      - ./federated_clients:/data
     depends_on:
       - server
-    volumes:
-      - ./federated_clients:/app/federated_clients
-      - ./models:/app/models
-    command: ["python","client/client.py","--client_id","client_3","--data","federated_clients/client_3.csv","--fl_server","fl_server:8080"]
 
-  serving:
-    build:
-      context: .
-      dockerfile: serving/Dockerfile
+  # serving:
+  #   build:
+  #     context: .
+  #     dockerfile: serving/Dockerfile
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./models:/app/models
+  # ----------------------------------------------------------
+  # 3) MODEL SERVING (FASTAPI)
+  # ----------------------------------------------------------
+  # serving:
+  #   build: ./serving
+  #   container_name: model_serving
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - models:/app/models
+  #     - ./shared:/app/shared
+  #   depends_on:
+  #     - server
+
+  # ----------------------------------------------------------
+  # 4) MLFLOW Tracking server
+  # ----------------------------------------------------------
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow
     ports:
-      - "8000:8000"
+      - "5000:5000"
     volumes:
-      - ./models:/app/models
+      - mlflow_data:/mlflow
+      - models:/models
+    command: >
+      mlflow server --host 0.0.0.0
+      --backend-store-uri /mlflow
+      --default-artifact-root /models
+
+  # ----------------------------------------------------------
+  # 5) Airflow (Scheduler + Webserver)
+  # ----------------------------------------------------------
+  airflow-webserver:
+    build: ./airflow
+    container_name: airflow_webserver
+    ports:
+      - "8081:8080"
+    environment:
+      - LOAD_EX=y
+      - TZ=UTC
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - models:/models
+      - ./shared:/app/shared
+    depends_on:
+      - airflow-scheduler
+
+  airflow-scheduler:
+    build: ./airflow
+    container_name: airflow_scheduler
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - models:/models
+      - ./shared:/app/shared
+
+  # ----------------------------------------------------------
+  # 6) Monitoring (Prometheus + Grafana)
+  # ----------------------------------------------------------
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+
+# ----------------------------------------------------------
+# VOLUMES
+# ----------------------------------------------------------
+volumes:
+  models:
+  mlflow_data:

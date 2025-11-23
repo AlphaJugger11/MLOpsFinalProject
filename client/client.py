@@ -84,7 +84,10 @@ def get_fl_server_address(control_api='http://127.0.0.1:5001', fl_server=None):
     except Exception:
         print('[client] could not get Flower port from control API, defaulting to 8080')
         return '127.0.0.1:8080'
-
+# 
+#     server_addr = os.getenv("SERVER_ADDR", "server:8070") 
+#     time.sleep(5)
+#     fl.client.start_client(server_address=server_addr, client=client.to_client())
 
 def start_client(fl_server, client_id, data_path):
     start_http_server(9100)  # expose Prometheus metrics
@@ -92,7 +95,8 @@ def start_client(fl_server, client_id, data_path):
     model = get_model(in_dim=in_dim, num_classes=num_classes)
 
     # try load latest global model from ../models
-    models_dir = Path.cwd().parents[1] / 'models'
+    # models_dir = Path.cwd().parents[1] / 'models'
+    models_dir = Path("/models")
     if models_dir.exists():
         model_files = sorted(models_dir.glob('global_round_*.pth'))
         if model_files:

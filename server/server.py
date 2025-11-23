@@ -27,7 +27,9 @@ def find_free_port(start_port=8080):
             except OSError:
                 port += 1
 
-FL_PORT = find_free_port(FL_PORT_DEFAULT)
+# FL_PORT = find_free_port(FL_PORT_DEFAULT)
+FL_PORT = int(os.environ.get("FL_PORT", 8080))
+
 print(f"[server] Flower server will run on port {FL_PORT}")
 
 @app.route('/list_clients', methods=['GET'])
