@@ -7,13 +7,26 @@
 # CMD ["python", "server/server.py"]
 
 FROM python:3.11-slim
+
+# Prevent Python from writing .pyc files & enable unbuffered logs
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
+# Copy and install dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY server /app/server
-COPY shared /app/shared
-COPY models /app/models
+# Copy application code
+COPY server/ /app/server
+COPY shared/ /app/shared
 
-CMD ["python", "server/server.py"]
+# Ensure 'server' is treated as a package
+RUN touch /app/server/__init__.py
+
+# Set PYTHONPATH so Python can find shared modules
+ENV PYTHONPATH=/app
+
+# Run the server as a module
+ENTRYPOINT ["python", "-m", "server.server"]

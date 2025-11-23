@@ -315,7 +315,6 @@
 # volumes:
 #   models:
 
-
 version: "3.9"
 
 services:
@@ -334,10 +333,11 @@ services:
       - fl-net
     volumes:
       - models:/app/models
-      - ./shared:/app/shared     # FIXED: shared visible in server
+      - ./shared:/app/shared
+      - ./server:/app/server       # Ensure server code is visible
     environment:
-      - PYTHONPATH=/app          # FIXED: enable imports
-    command: ["python", "server/server.py"]
+      PYTHONPATH: /app
+    command: ["python", "-m", "server.server"]
 
   #############################################
   # CLIENT 1
@@ -354,11 +354,15 @@ services:
     volumes:
       - ./federated_clients/client_1.csv:/app/client_1.csv
       - models:/app/models
-      - ./shared:/app/shared      # FIXED: shared visible for imports
+      - ./shared:/app/shared
+      - ./client:/app/client       # Ensure client code is visible
     environment:
-      - SERVER_ADDR=server:8070
-      - PYTHONPATH=/app
-    command: ["python", "client/client.py", "client_1.csv"]
+      CLIENT_ID: "client_1"
+      DATA_PATH: "/app/client_1.csv"
+      SERVER_ADDR: "server:8070"
+      PYTHONPATH: /app
+    entrypoint: ["python", "client/client.py"]
+    command: ["--client_id", "${CLIENT_ID}", "--data", "${DATA_PATH}"]
 
   #############################################
   # CLIENT 2
@@ -376,10 +380,14 @@ services:
       - ./federated_clients/client_2.csv:/app/client_2.csv
       - models:/app/models
       - ./shared:/app/shared
+      - ./client:/app/client
     environment:
-      - SERVER_ADDR=server:8070
-      - PYTHONPATH=/app
-    command: ["python", "client/client.py", "client_2.csv"]
+      CLIENT_ID: "client_2"
+      DATA_PATH: "/app/client_2.csv"
+      SERVER_ADDR: "server:8070"
+      PYTHONPATH: /app
+    entrypoint: ["python", "client/client.py"]
+    command: ["--client_id", "${CLIENT_ID}", "--data", "${DATA_PATH}"]
 
   #############################################
   # CLIENT 3
@@ -397,10 +405,14 @@ services:
       - ./federated_clients/client_3.csv:/app/client_3.csv
       - models:/app/models
       - ./shared:/app/shared
+      - ./client:/app/client
     environment:
-      - SERVER_ADDR=server:8070
-      - PYTHONPATH=/app
-    command: ["python", "client/client.py", "client_3.csv"]
+      CLIENT_ID: "client_3"
+      DATA_PATH: "/app/client_3.csv"
+      SERVER_ADDR: "server:8070"
+      PYTHONPATH: /app
+    entrypoint: ["python", "client/client.py"]
+    command: ["--client_id", "${CLIENT_ID}", "--data", "${DATA_PATH}"]
 
   #############################################
   # SERVING API (FastAPI Inference)
@@ -416,44 +428,13 @@ services:
       - fl-net
     volumes:
       - models:/app/models
-      - ./shared:/app/shared      # FIXED
+      - ./shared:/app/shared
+      - ./serving:/app/serving
     environment:
-      - PYTHONPATH=/app
+      PYTHONPATH: /app
     depends_on:
       - server
-
-  #############################################
-  # AIRFLOW (Optional, disabled for GitHub Actions)
-  #############################################
-  # airflow:
-  #   build:
-  #     context: ./airflow
-  #     dockerfile: Dockerfile
-  #   container_name: airflow
-  #   ports:
-  #     - "8080:8080"
-  #   volumes:
-  #     - ./airflow/dags:/opt/airflow/dags
-  #     - models:/models
-  #   networks:
-  #     - fl-net
-  #   environment:
-  #     - AIRFLOW__CORE__LOAD_EXAMPLES=False
-  #   depends_on:
-  #     - server
-
-  #############################################
-  # PROMETHEUS (FIXED — mount directory not file)
-  #############################################
-  # prometheus:
-  #   image: prom/prometheus
-  #   container_name: prometheus
-  #   ports:
-  #     - "9090:9090"
-  #   volumes:
-  #     - ./monitoring:/etc/prometheus    # FIXED (directory → directory)
-  #   networks:
-  #     - fl-net
+    command: ["python", "-m", "serving.serving"]
 
 networks:
   fl-net:
