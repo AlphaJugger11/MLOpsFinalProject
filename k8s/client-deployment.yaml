@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fl-client
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fl-client
+  template:
+    metadata:
+      labels:
+        app: fl-client
+    spec:
+      containers:
+      - name: client
+        image: yourrepo/fl-client:latest
+        env:
+        - name: FL_SERVER
+          value: "fl-server-svc:8080"
+        - name: CONTROL_API
+          value: "http://fl-server-svc:5001"
+        volumeMounts:
+        - name: client-data
+          mountPath: /app/federated_clients
+      volumes:
+      - name: client-data
+        hostPath:
+          path: /data/federated_clients
