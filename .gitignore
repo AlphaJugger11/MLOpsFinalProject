@@ -1,4 +1,4 @@
-federate_clients/
+federated_clients/
 models/
 # Byte-compiled / optimized / DLL files
 __pycache__/
