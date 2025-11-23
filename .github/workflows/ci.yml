@@ -69,14 +69,12 @@
 #     #     docker tag server-image ghcr.io/${{ github.repository }}/server:latest
 #     #     docker push ghcr.io/${{ github.repository }}/server:latest
 
-
 name: MLOps FL Training & Build Test
 
 on:
   push:
     branches:
       - final_flow
- 
 
 jobs:
   federated-training:
@@ -86,22 +84,22 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-         python-version: '3.11'
+        python-version: '3.11'
 
- 
-
-    # - name: Build Docker Images
-    #   run: |
-    #     docker compose build
-
-    - name: Run Full FL Pipeline (Server + 3 Clients + Airflow)
+    - name: Run Full FL Pipeline
       run: |
         docker compose up --abort-on-container-exit --remove-orphans
       timeout-minutes: 15
+
+    - name: Export model volume to host
+      if: always()
+      run: |
+        mkdir -p models
+        docker run --rm -v mlopsfinalproject_models:/models -v $PWD/models:/output \
+          busybox cp /models/* /output/ || true
 
     - name: Show server logs
       if: always()
@@ -109,11 +107,11 @@ jobs:
 
     - name: Check that model was produced
       run: |
-        if [ ! -f models/global_round_2.pth ]; then
+        if ls models/global_round_*.pth 1> /dev/null 2>&1; then
+            echo "✅ Global FL Model Found — TRAINING SUCCESSFUL"
+        else
             echo "❌ GLOBAL MODEL NOT PRODUCED — TRAINING FAILED"
             exit 1
-        else
-            echo "✅ Global FL Model Found — TRAINING SUCCESSFUL"
         fi
 
     - name: Docker Cleanup

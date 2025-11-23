@@ -179,6 +179,143 @@
 #   models:
 #   mlflow_data:
 
+# version: "3.9"
+
+# services:
+
+#   #############################################
+#   # SERVER (Federated Learning Aggregator)
+#   #############################################
+#   server:
+#     build:
+#       context: .
+#       dockerfile: server/Dockerfile
+#     container_name: fl-server
+#     ports:
+#       - "8070:8070"
+#     networks:
+#       - fl-net
+#     volumes:
+#       - models:/app/models          # shared model volume
+#       - ./shared:/app/shared        # shared model utils
+#     command: ["python", "server/server.py"]
+
+#   #############################################
+#   # CLIENT 1
+#   #############################################
+#   client1:
+#     build:
+#       context: .
+#       dockerfile: client/Dockerfile
+#     container_name: fl-client1
+#     depends_on:
+#       - server
+#     networks:
+#       - fl-net
+#     volumes:
+#       - ./federated_clients/client_1.csv:/app/client_1.csv
+#       - models:/app/models
+#     environment:
+#       - SERVER_ADDR=server:8070
+#     command: ["python", "client/client.py", "client_1.csv"]
+
+#   #############################################
+#   # CLIENT 2
+#   #############################################
+#   client2:
+#     build:
+#       context: .
+#       dockerfile: client/Dockerfile
+#     container_name: fl-client2
+#     depends_on:
+#       - server
+#     networks:
+#       - fl-net
+#     volumes:
+#       - ./federated_clients/client_2.csv:/app/client_2.csv
+#       - models:/app/models
+#     environment:
+#       - SERVER_ADDR=server:8070
+#     command: ["python", "client/client.py", "client_2.csv"]
+
+#   #############################################
+#   # CLIENT 3
+#   #############################################
+#   client3:
+#     build:
+#       context: .
+#       dockerfile: client/Dockerfile
+#     container_name: fl-client3
+#     depends_on:
+#       - server
+#     networks:
+#       - fl-net
+#     volumes:
+#       - ./federated_clients/client_3.csv:/app/client_3.csv
+#       - models:/app/models
+#     environment:
+#       - SERVER_ADDR=server:8070
+#     command: ["python", "client/client.py", "client_3.csv"]
+
+#   #############################################
+#   # SERVING API (FastAPI Inference)
+#   #############################################
+#   serving:
+#     build:
+#       context: .
+#       dockerfile: serving/Dockerfile
+#     container_name: fl-serving
+#     ports:
+#       - "8000:8000"
+#     networks:
+#       - fl-net
+#     volumes:
+#       - models:/app/models
+#       - ./shared:/app/shared
+#     depends_on:
+#       - server
+
+#   #############################################
+#   # AIRFLOW (TRAINING DAG)
+#   #############################################
+#   # airflow:
+#   #   build:
+#   #     context: ./airflow
+#   #     dockerfile: Dockerfile
+#   #   container_name: airflow
+#   #   ports:
+#   #     - "8080:8080"
+#   #   volumes:
+#   #     - ./airflow/dags:/opt/airflow/dags
+#   #     - models:/models
+#   #   networks:
+#   #     - fl-net
+#   #   environment:
+#   #     - AIRFLOW__CORE__LOAD_EXAMPLES=False
+#   #   depends_on:
+#   #     - server
+
+#   #############################################
+#   # PROMETHEUS + MONITORING (OPTIONAL)
+#   #############################################
+#   # prometheus:
+#   #   image: prom/prometheus
+#   #   container_name: prometheus
+#   #   ports:
+#   #     - "9090:9090"
+#   #   volumes:
+#   #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+#   #   networks:
+#   #     - fl-net
+
+# networks:
+#   fl-net:
+#     driver: bridge
+
+# volumes:
+#   models:
+
+
 version: "3.9"
 
 services:
@@ -196,8 +333,10 @@ services:
     networks:
       - fl-net
     volumes:
-      - models:/app/models          # shared model volume
-      - ./shared:/app/shared        # shared model utils
+      - models:/app/models
+      - ./shared:/app/shared     # FIXED: shared visible in server
+    environment:
+      - PYTHONPATH=/app          # FIXED: enable imports
     command: ["python", "server/server.py"]
 
   #############################################
@@ -215,8 +354,10 @@ services:
     volumes:
       - ./federated_clients/client_1.csv:/app/client_1.csv
       - models:/app/models
+      - ./shared:/app/shared      # FIXED: shared visible for imports
     environment:
       - SERVER_ADDR=server:8070
+      - PYTHONPATH=/app
     command: ["python", "client/client.py", "client_1.csv"]
 
   #############################################
@@ -234,8 +375,10 @@ services:
     volumes:
       - ./federated_clients/client_2.csv:/app/client_2.csv
       - models:/app/models
+      - ./shared:/app/shared
     environment:
       - SERVER_ADDR=server:8070
+      - PYTHONPATH=/app
     command: ["python", "client/client.py", "client_2.csv"]
 
   #############################################
@@ -253,8 +396,10 @@ services:
     volumes:
       - ./federated_clients/client_3.csv:/app/client_3.csv
       - models:/app/models
+      - ./shared:/app/shared
     environment:
       - SERVER_ADDR=server:8070
+      - PYTHONPATH=/app
     command: ["python", "client/client.py", "client_3.csv"]
 
   #############################################
@@ -271,12 +416,14 @@ services:
       - fl-net
     volumes:
       - models:/app/models
-      - ./shared:/app/shared
+      - ./shared:/app/shared      # FIXED
+    environment:
+      - PYTHONPATH=/app
     depends_on:
       - server
 
   #############################################
-  # AIRFLOW (TRAINING DAG)
+  # AIRFLOW (Optional, disabled for GitHub Actions)
   #############################################
   # airflow:
   #   build:
@@ -296,7 +443,7 @@ services:
   #     - server
 
   #############################################
-  # PROMETHEUS + MONITORING (OPTIONAL)
+  # PROMETHEUS (FIXED — mount directory not file)
   #############################################
   # prometheus:
   #   image: prom/prometheus
@@ -304,7 +451,7 @@ services:
   #   ports:
   #     - "9090:9090"
   #   volumes:
-  #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - ./monitoring:/etc/prometheus    # FIXED (directory → directory)
   #   networks:
   #     - fl-net
 
@@ -314,4 +461,3 @@ networks:
 
 volumes:
   models:
-
