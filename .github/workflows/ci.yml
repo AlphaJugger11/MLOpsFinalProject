@@ -1,131 +1,27 @@
-
-# name: MLOps FL Training & Build Test
-
-# on:
-#   push:
-#     branches:
-#       - final_flow
-
-# jobs:
-#   federated-training:
-#     runs-on: ubuntu-latest
-    
-#     steps:
-#     - name: Checkout repository
-#       uses: actions/checkout@v3
-
-#     - name: Set up Python
-#       uses: actions/setup-python@v4
-#       with:
-#         python-version: '3.11'
-
-#     - name: Run Full FL Pipeline
-#       run: |
-#         docker compose up --abort-on-container-exit --remove-orphans
-#       timeout-minutes: 15
-
-#     - name: Export model volume to host
-#       if: always()
-#       run: |
-#         mkdir -p models
-#         docker run --rm -v mlopsfinalproject_models:/models -v $PWD/models:/output \
-#           busybox cp /models/* /output/ || true
-
-#     - name: Show server logs
-#       if: always()
-#       run: docker logs fl-server || true
-
-#     - name: Check that model was produced
-#       run: |
-#         if ls models/global_round_*.pth 1> /dev/null 2>&1; then
-#             echo "✅ Global FL Model Found — TRAINING SUCCESSFUL"
-#         else
-#             echo "❌ GLOBAL MODEL NOT PRODUCED — TRAINING FAILED"
-#             exit 1
-#         fi
-
-#     - name: Docker Cleanup
-#       if: always()
-#       run: docker compose down --volumes --remove-orphans
-
-
-# name: MLOps FL Training & Build Test
+# name: Full MLOps System
 
 # on:
 #   push:
-#     branches:
-#       - final_flow
+#   workflow_dispatch:
 
 # jobs:
-#   federated-training:
+#   full-pipeline:
 #     runs-on: ubuntu-latest
-    
 #     steps:
-#     - name: Checkout repository
-#       uses: actions/checkout@v3
+#       - uses: actions/checkout@v3
+      
+#       - name: Docker Build & Run
+#         run: docker compose up --build -d
 
-#     - name: Set up Python
-#       uses: actions/setup-python@v4
-#       with:
-#         python-version: '3.11'
+#       - name: Wait for System
+#         run: sleep 60
 
-#     - name: Run Full FL Pipeline
-#       run: |
-#         docker compose -f docker-compose.yml up --abort-on-container-exit --remove-orphans
+#       - name: Test Dashboard
+#         run: curl http://localhost:8501
 
+#       - name: Cleanup
+#         run: docker compose down
 
-#     - name: Export model volume to host
-#       if: always()
-#       run: |
-#         mkdir -p models
-#         docker run --rm -v mlopsfinalproject_models:/models -v $PWD/models:/output \
-#           busybox cp /models/* /output/ || true
-
-#     - name: Show server logs
-#       if: always()
-#       run: docker logs fl-server || true
-
-#     - name: Check that model was produced
-#       run: |
-#         if ls models/global_round_*.pth 1> /dev/null 2>&1; then
-#             echo "✅ Global FL Model Found — TRAINING SUCCESSFUL"
-#         else
-#             echo "❌ GLOBAL MODEL NOT PRODUCED — TRAINING FAILED"
-#             exit 1
-#         fi
-
-#     # --- NEW: Run inference ---
-#     - name: Start Serving Container
-#       run: docker compose up -d serving
-
-#     - name: Wait for Serving API to be ready
-#       run: sleep 10  # adjust if your FastAPI takes longer
-
-#     - name: Test Inference inside container
-#       run: |
-#         docker exec fl-serving python - <<EOF
-#         import torch
-#         from shared.model import get_model
-
-#         # Load the latest global model from /app/models inside container
-#         import glob
-#         model_files = sorted(glob.glob("/app/models/global_round_*.pth"))
-#         assert model_files, "No global model found"
-#         latest_model_path = model_files[-1]
-
-#         model = get_model()
-#         model.load_state_dict(torch.load(latest_model_path))
-#         model.eval()
-
-#         dummy_input = torch.randn(1, 561)
-#         output = model(dummy_input)
-#         print("✅ Inference output:", output)
-#         EOF
-
-
-#     - name: Docker Cleanup
-#       if: always()
-#       run: docker compose down --volumes --remove-orphans
 name: MLOps FL Training & Build Test
 
 on:

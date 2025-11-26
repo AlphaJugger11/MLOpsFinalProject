@@ -387,6 +387,20 @@ services:
       - SERVER_ADDR=server:8070
       - PYTHONPATH=/app
     command: ["--client_id", "client3", "--data", "/app/client_3.csv"]
+  
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    container_name: fl-dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      - server
+      - serving
+    networks:
+      - fl-net
+
 
   serving:
     build:

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: yourrepo/fl-server:latest
+        image: final_flow/fl-server:latest
         ports:
         - containerPort: 8080
         - containerPort: 5001
