@@ -1,0 +1,70 @@
+# name: Full MLOps System
+
+# on:
+#   push:
+#   workflow_dispatch:
+
+# jobs:
+#   full-pipeline:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+      
+#       - name: Docker Build & Run
+#         run: docker compose up --build -d
+
+#       - name: Wait for System
+#         run: sleep 60
+
+#       - name: Test Dashboard
+#         run: curl http://localhost:8501
+
+#       - name: Cleanup
+#         run: docker compose down
+
+name: MLOps FL Training & Build Test
+
+on:
+  push:
+    branches:
+      - final_flow
+
+jobs:
+  federated-training:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Run Full FL Pipeline
+      run: |
+        docker compose up --abort-on-container-exit --remove-orphans
+      timeout-minutes: 15
+
+    - name: Export model volume to host
+      if: always()
+      run: |
+        mkdir -p models
+        docker run --rm -v mlopsfinalproject_models:/models -v $PWD/models:/output \
+          busybox cp /models/* /output/ || true
+    - name: Show server logs
+      if: always()
+      run: docker logs fl-server || true
+
+    - name: Check that model was produced
+      run: |
+        if ls models/global_round_*.pth 1> /dev/null 2>&1; then
+            echo "✅ Global FL Model Found — TRAINING SUCCESSFUL"
+        else
+            echo "❌ GLOBAL MODEL NOT PRODUCED — TRAINING FAILED"
+            exit 1
+        fi
+    - name: Docker Cleanup
+      if: always()
+      run: docker compose down --volumes --remove-orphans

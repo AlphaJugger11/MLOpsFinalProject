@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/asim/Desktop/d/univeristy/MLops/Project/MLOpsFinalProject/mlruns/161903593368479901/dab447b2f1a74c6b87aa2a2ab90ac6a0/artifacts
+end_time: 1763900020864
+entry_point_name: ''
+experiment_id: '161903593368479901'
+lifecycle_stage: active
+run_id: dab447b2f1a74c6b87aa2a2ab90ac6a0
+run_name: welcoming-donkey-645
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763900018288
+status: 3
+tags: []
+user_id: asim
